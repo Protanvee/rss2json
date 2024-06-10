@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSS to JSON Converter</title>
+    <title>Convert RSS Feed to JSON</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
 </head>
 <body>
     <div id="app">
-        <h1>Pro Tanvee RSS to JSON Converter</h1>
-        <p>Specify the RSS Feed URL in the address field like: <code>?url=www.mydomain.com/rss-feed.xml</code></p>
+        <h1>Convert RSS Feed to JSON</h1>
+        <input type="text" v-model="rssUrl" placeholder="Enter RSS Feed URL" style="width: 400px; padding: 5px;">
+        <button @click="convertRSS">Convert to JSON</button>
         <div v-if="jsonOutput">
             <pre>{{ jsonOutput }}</pre>
         </div>
@@ -19,36 +20,37 @@
         new Vue({
             el: '#app',
             data: {
+                rssUrl: '',
                 jsonOutput: null
             },
-            async mounted() {
-                const urlParams = new URLSearchParams(window.location.search);
-                const rssUrl = urlParams.get('url');
-                if (rssUrl) {
-                    try {
-                        const response = await fetch(rssUrl, { mode: 'cors' });
-                        if (response.ok) {
-                            const xmlText = await response.text();
-                            const parser = new DOMParser();
-                            const xmlDOM = parser.parseFromString(xmlText, 'text/xml');
-                            const items = Array.from(xmlDOM.querySelectorAll('item'));
-                            const rssData = items.map(item => {
-                                const itemData = {};
-                                item.querySelectorAll('*').forEach(element => {
-                                    itemData[element.tagName] = element.textContent;
+            methods: {
+                async convertRSS() {
+                    if (this.rssUrl.trim() !== '') {
+                        try {
+                            const response = await fetch(this.rssUrl, { mode: 'cors' });
+                            if (response.ok) {
+                                const xmlText = await response.text();
+                                const parser = new DOMParser();
+                                const xmlDOM = parser.parseFromString(xmlText, 'text/xml');
+                                const items = Array.from(xmlDOM.querySelectorAll('item'));
+                                const rssData = items.map(item => {
+                                    const itemData = {};
+                                    item.querySelectorAll('*').forEach(element => {
+                                        itemData[element.tagName] = element.textContent;
+                                    });
+                                    return itemData;
                                 });
-                                return itemData;
-                            });
-                            this.jsonOutput = JSON.stringify(rssData, null, 4);
-                        } else {
-                            this.jsonOutput = { error: 'Failed to fetch RSS feed. Please check the URL provided.' };
+                                this.jsonOutput = JSON.stringify(rssData, null, 4);
+                            } else {
+                                this.jsonOutput = { error: 'Failed to fetch RSS feed. Please check the URL provided.' };
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            this.jsonOutput = { error: 'An error occurred while fetching the RSS feed.' };
                         }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        this.jsonOutput = { error: 'An error occurred while fetching the RSS feed.' };
+                    } else {
+                        this.jsonOutput = { error: 'Please enter a valid RSS Feed URL.' };
                     }
-                } else {
-                    this.jsonOutput = { error: 'Please specify a valid RSS Feed URL in the address field.' };
                 }
             }
         });
